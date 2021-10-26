@@ -1,0 +1,37 @@
+---
+# automate the setup of the ChRIS UI source code repository.
+- name: Check for the {{ UI_NAME }} README file
+  stat:
+    path: "{{ UI_SRC }}/README.md"
+  register: UI_README
+- name: Create the {{ UI_NAME }} source directory {{ UI_SRC }}
+  file:
+    name: "{{ UI_SRC }}"
+    state: directory
+    owner: "{{ USER_NAME }}"
+  when: not UI_README.stat.exists
+  become: true
+- name: Clone the {{ UI_REPO }} source code into {{ UI_SRC }}
+  git:
+    repo: "{{ UI_REPO }}"
+    dest: "{{ UI_SRC }}"
+  when: not UI_README.stat.exists
+
+# Automate the setup of the ChRIS UI data directory.
+- name: Create the {{ APP_NAME }} data directory {{ UI_DATA }}.
+  file:
+    name: "{{ UI_DATA }}"
+    state: directory
+    owner: "{{ APP_USER }}"
+    mode: '0777'
+  become: true
+- name: set SELinux permissions on {{ UI_DATA }}
+  sefcontext:
+    target: "{{ UI_DATA }}(/.*)?"
+    setype: container_file_t
+  become: true
+  vars:
+    ansible_python_interpreter: "{{ APP_PYTHON }}"
+- name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
+  command: "restorecon -irv {{ UI_DATA }}"
+  become: true
