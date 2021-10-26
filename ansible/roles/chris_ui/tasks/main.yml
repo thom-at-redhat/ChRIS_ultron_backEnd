@@ -35,3 +35,23 @@
 - name: reload SELinux policy to ensure that {{ APP_NAME }} is executable
   command: "restorecon -irv {{ UI_DATA }}"
   become: true
+
+# Automate the deployment of ChRIS UI as a Podman container running as a Systemd service.
+- name: Create the {{ UI_NAME }} systemd service {{ UI_SYSTEMD }}.
+  template:
+    src: chris_ui.service
+    dest: "{{ UI_SYSTEMD }}"
+  become: true
+  when: ansible_pkg_mgr != 'homebrew'
+- name: Reload the services.
+  systemd:
+    daemon_reload: true
+  become: true
+  when: ansible_pkg_mgr != 'homebrew'
+- name: Start and enable the {{ UI_SERVICE }} service.
+  service:
+    name: "{{ UI_SERVICE }}"
+    enabled: true
+    state: restarted
+  become: true
+  when: ansible_pkg_mgr != 'homebrew'
